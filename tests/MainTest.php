@@ -1,8 +1,6 @@
 <?php
 namespace tests;
 
-use samsonphp\generator\Generator;
-
 /**
  * Created by Vitaly Iegorov <egorov@samsonos.com>
  * on 04.08.14 at 16:42
@@ -22,6 +20,4 @@ class MainTest extends \PHPUnit_Framework_TestCase
         $this->assertEquals('foo', array_pop($stack));
         $this->assertEquals(0, count($stack));
     }
-
-
 }
