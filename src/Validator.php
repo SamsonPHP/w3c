@@ -9,8 +9,17 @@ namespace samsonphp\w3c;
 
 use samson\core\Service;
 
+/**
+ * W3C validator SamsonPHP service.
+ * This service is performing request to W3C HTML validation service
+ * ans outputs its error for improving html markup quality.
+ *
+ * @package samsonphp\w3c
+ * @author Vitalii Iehorov <egorov@samsonos.com>
+ */
 class Validator extends Service
 {
+    /** Module initialization logic */
     public function init(array $params = array())
     {
         // Subscribe to resourcer event
