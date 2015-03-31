@@ -40,7 +40,6 @@ class Controller extends Service
         return array('status' => 1, 'validation' => $validator->validate());
     }
 
-
     /** Module initialization logic */
     public function init(array $params = array())
     {
