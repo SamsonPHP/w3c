@@ -8,6 +8,7 @@
 namespace samsonphp\w3c;
 
 use samson\core\Service;
+use samsonframework\w3c\Validator;
 
 /**
  * W3C validator SamsonPHP service.
