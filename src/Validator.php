@@ -35,10 +35,10 @@ class Validator extends Service
     /** @var int Amount of validation warnings found */
     protected $w3cWarningsCount = 0;
 
-    /** @var \SimpleXMLElement W3C validator response */
-    protected $w3cResponse;
-
+    /** @var \samsonphp\w3c\violation\Collection W3C Errors collection */
     protected $w3cErrors = array();
+
+    /** @var \samsonphp\w3c\violation\Collection W3C Warnings collection */
     protected $w3cWarnings = array();
 
     /** @var bool Flag to perform w3c validation */
@@ -50,18 +50,18 @@ class Validator extends Service
      */
     public function __async_validate()
     {
-        return array('status' => 1, 'html' => $this->validate());
+        return array('status' => 1, 'validation' => $this->validate());
     }
 
 
     /** Module initialization logic */
     public function init(array $params = array())
     {
+        $this->enabled = true;
+
         // Subscribe to resourcer event
         \samsonphp\event\Event::subscribe('resourcer.updated', array($this, 'enable'));
-
-        $this->enabled = true;
-        $this->__async_validate();
+        \samsonphp\event\Event::subscribe('core.rendered', array($this, 'renderToken'));
     }
 
     /** Trigger function to enable automatic validation if resource ahs been changed */
@@ -71,6 +71,18 @@ class Validator extends Service
         $this->enabled = true;
     }
 
+    /** Event callback for rendering special HTML token to perform W3C validation */
+    public function renderToken(&$output)
+    {
+        // If validation is enabled
+        if ($this->enabled) {
+            // Render HTML asynchronous validation token
+            $output .= $this->view('index')->link($this->id . '/validate')->output();
+
+            // Disable further validation async calls
+            $this->enabled = false;
+        }
+    }
 
     /**
      * Perform HTTP request
@@ -102,12 +114,10 @@ class Validator extends Service
         $response = trim(file_get_contents($uri, false, stream_context_create($opts)));
 
         // If we have completed HTTP request
-        if ($this->w3cResponse === false) {
+        if ($response === false) {
             // Throw http request failed exception
             throw new RequestException('W3C API http request failed');
         }
-
-        trace($response, true);
 
         return $response;
     }
@@ -123,28 +133,41 @@ class Validator extends Service
             // Block errors reporting
             libxml_use_internal_errors(false);
 
-            // Parse XML document
-            $this->w3cResponse = simplexml_load_string($this->httpRequest());
+            // W3C validator response
+            $w3cResponse = simplexml_load_string($this->httpRequest());
 
             // Get document namespaces declaration
-            $nameSpaces = $this->w3cResponse->getNamespaces(true);
+            $nameSpaces = $w3cResponse->getNamespaces(true);
 
             // Get validation data
-            $validationResponse = $this->w3cResponse
+            $validationResponse = $w3cResponse
                 ->children($nameSpaces['env'])  // Get 'http://www.w3.org/2003/05/soap-envelope/'
                 ->children($nameSpaces['m'])    // Get 'http://www.w3.org/2005/10/markup-validator'
                 ->markupvalidationresponse;
 
-            $this->w3cErrors = new Collection($validationResponse->errors->errorlist->error, __NAMESPACE__.'\violation\Error');
-            $this->w3cWarnings = new Collection($validationResponse->warnings->warninglist->warning, __NAMESPACE__.'\violation\Warning');
+            // Create errors collection
+            $this->w3cErrors = new Collection(
+                $validationResponse->errors->errorlist->error,
+                __NAMESPACE__.'\violation\Error'
+            );
 
-            trace($this->w3cErrors, true);
-            trace($this->w3cWarnings, true);
+            // Create warnings collection
+            $this->w3cWarnings = new Collection(
+                $validationResponse->warnings->warninglist->warning,
+                __NAMESPACE__.'\violation\Warning'
+            );
 
-            // Get response headers validation data
-            $this->w3cStatus = &$http_response_header['X-W3C-Validator-Status'];
-            $this->w3cErrorsCount = &$http_response_header['X-W3C-Validator-Errors'];
-            $this->w3cWarningsCount = &$http_response_header['X-W3C-Validator-Warnings'];
+            // Set validation summary results
+            $this->w3cStatus = (bool)$validationResponse->validity;
+            $this->w3cErrorsCount = (int)$validationResponse->errors->errorcount;
+            $this->w3cWarningsCount = (int)$validationResponse->warnings->warningcount;
         }
+
+        return array(
+            'errorsCount' => $this->w3cErrorsCount,
+            'errors' => $this->w3cErrors->toArray(),
+            'warningsCount' => $this->w3cWarningsCount,
+            'warnings' => $this->w3cWarnings->toArray(),
+        );
     }
 }

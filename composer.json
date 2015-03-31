@@ -11,6 +11,7 @@
     "minimum-stability":"dev",
     "require": {
         "samsonphp/event": "1.*",
+        "samsonos/js_core": "*",
         "samsonos/php_resourcer": "*"
     },
     "require-dev": {

@@ -7,6 +7,10 @@
  */
 namespace samsonphp\w3c\violation;
 
+/**
+ * W3C HTML markup Warning
+ * @package samsonphp\w3c\violation
+ */
 class Warning extends Violation
 {
 
