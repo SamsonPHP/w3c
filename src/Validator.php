@@ -7,24 +7,18 @@
  */
 namespace samsonphp\w3c;
 
-use samson\core\Service;
 use samsonphp\w3c\violation\Collection;
 
 /**
- * W3C validator SamsonPHP service.
- * This service is performing request to W3C HTML validation service
- * ans outputs its error for improving html markup quality.
+ * W3C validator
  *
  * @package samsonphp\w3c
  * @author Vitalii Iehorov <egorov@samsonos.com>
  */
-class Validator extends Service
+class Validator
 {
-    /** @var string Validating URL prefix, used for local domains */
-    public $urlPrefix = '.samsonos.com';
-
     /** @var string URL for validating */
-    public $w3cUrl = 'http://validator.w3.org/check';
+    protected $w3cUrl = 'http://validator.w3.org/check';
 
     /** @var bool Validation result status */
     protected $w3cStatus;
@@ -41,66 +35,27 @@ class Validator extends Service
     /** @var \samsonphp\w3c\violation\Collection W3C Warnings collection */
     protected $w3cWarnings = array();
 
-    /** @var bool Flag to perform w3c validation */
-    protected $enabled = false;
+    /** @var string Source URL for validating  */
+    protected $sourceUrl;
 
     /**
-     * Asynchronous validation controller action
-     * @return array Asynchronous response array
+     * @param $sourceUrl Source URL for validating
      */
-    public function __async_validate()
+    public function __construct($sourceUrl)
     {
-        return array('status' => 1, 'validation' => $this->validate());
-    }
-
-
-    /** Module initialization logic */
-    public function init(array $params = array())
-    {
-        $this->enabled = true;
-
-        // Subscribe to resourcer event
-        \samsonphp\event\Event::subscribe('resourcer.updated', array($this, 'enable'));
-        \samsonphp\event\Event::subscribe('core.rendered', array($this, 'renderToken'));
-    }
-
-    /** Trigger function to enable automatic validation if resource ahs been changed */
-    public function enable()
-    {
-        // Switch flag to enable validation if resource has been changed
-        $this->enabled = true;
-    }
-
-    /** Event callback for rendering special HTML token to perform W3C validation */
-    public function renderToken(&$output)
-    {
-        // If validation is enabled
-        if ($this->enabled) {
-            // Render HTML asynchronous validation token
-            $output .= $this->view('index')->link($this->id . '/validate')->output();
-
-            // Disable further validation async calls
-            $this->enabled = false;
-        }
+        $this->sourceUrl = $sourceUrl;
     }
 
     /**
      * Perform HTTP request
-     * @throws RequestException If W3C request has been failed
+     * @param string $sourceUrl Source URL for validating
      * @returns string HTTP response results
+     * @throws RequestException If W3C request has been failed
      */
-    protected function httpRequest()
+    protected function httpRequest($sourceUrl)
     {
-        // Build current HTML page url
-        $url = $_SERVER['HTTP_HOST'] . $this->urlPrefix;
-
-        // Add internal URL if present
-        if ($_SERVER['REQUEST_URI'] !== '/') {
-            $url .= '/' . $_SERVER['REQUEST_URI'];
-        }
-
         // Build request URL with GET parameters
-        $uri = $this->w3cUrl . '?' . http_build_query(array('output' => 'soap12', 'uri' => $url));
+        $uri = $this->w3cUrl . '?' . http_build_query(array('output' => 'soap12', 'uri' => $sourceUrl));
 
         // Create a stream
         $opts = array(
@@ -125,45 +80,45 @@ class Validator extends Service
     /**
      * W3C validator function
      * @throws RequestException
+     * @returns array
      */
     public function validate()
     {
-        // If we need validation
-        if ($this->enabled) {
-            // Block errors reporting
-            libxml_use_internal_errors(false);
+        // Block errors reporting
+        libxml_use_internal_errors(false);
 
-            // W3C validator response
-            $w3cResponse = simplexml_load_string($this->httpRequest());
+        // W3C validator response
+        $w3cResponse = simplexml_load_string($this->httpRequest($this->sourceUrl));
 
-            // Get document namespaces declaration
-            $nameSpaces = $w3cResponse->getNamespaces(true);
+        // Get document namespaces declaration
+        $nameSpaces = $w3cResponse->getNamespaces(true);
 
-            // Get validation data
-            $validationResponse = $w3cResponse
-                ->children($nameSpaces['env'])  // Get 'http://www.w3.org/2003/05/soap-envelope/'
-                ->children($nameSpaces['m'])    // Get 'http://www.w3.org/2005/10/markup-validator'
-                ->markupvalidationresponse;
+        // Get validation data
+        $validationResponse = $w3cResponse
+            ->children($nameSpaces['env'])  // Get 'http://www.w3.org/2003/05/soap-envelope/'
+            ->children($nameSpaces['m'])    // Get 'http://www.w3.org/2005/10/markup-validator'
+            ->markupvalidationresponse;
 
-            // Create errors collection
-            $this->w3cErrors = new Collection(
-                $validationResponse->errors->errorlist->error,
-                __NAMESPACE__.'\violation\Error'
-            );
+        // Create errors collection
+        $this->w3cErrors = new Collection(
+            $validationResponse->errors->errorlist->error,
+            __NAMESPACE__.'\violation\Error'
+        );
 
-            // Create warnings collection
-            $this->w3cWarnings = new Collection(
-                $validationResponse->warnings->warninglist->warning,
-                __NAMESPACE__.'\violation\Warning'
-            );
+        // Create warnings collection
+        $this->w3cWarnings = new Collection(
+            $validationResponse->warnings->warninglist->warning,
+            __NAMESPACE__.'\violation\Warning'
+        );
 
-            // Set validation summary results
-            $this->w3cStatus = (bool)$validationResponse->validity;
-            $this->w3cErrorsCount = (int)$validationResponse->errors->errorcount;
-            $this->w3cWarningsCount = (int)$validationResponse->warnings->warningcount;
-        }
+        // Set validation summary results
+        $this->w3cStatus = (bool)$validationResponse->validity;
+        $this->w3cErrorsCount = (int)$validationResponse->errors->errorcount;
+        $this->w3cWarningsCount = (int)$validationResponse->warnings->warningcount;
 
+        // Form response array
         return array(
+            'validity' => $this->w3cStatus,
             'errorsCount' => $this->w3cErrorsCount,
             'errors' => $this->w3cErrors->toArray(),
             'warningsCount' => $this->w3cWarningsCount,
