@@ -1,0 +1,54 @@
+@panel-height:25px;
+@panel-valid:#22e22b;
+@panel-invalid:#e55454;
+@panel-font_color:white;
+@panel-font_size:14px;
+
+.w3c-panel {
+  position:fixed;
+  padding-left:@panel-height;
+  height:@panel-height;
+  left:0px;
+  right:0px;
+  bottom:0px;
+  z-index:999;
+  border:1px solid darken(@panel-valid, 20);
+  background-color: @panel-valid;
+  line-height: @panel-height;
+  color:@panel-font_color;
+  font-size: @panel-font_size;
+
+  &.w3c-panel_invalid {
+    border-color: darken(@panel-invalid, 20);
+    background-color: @panel-invalid;
+  }
+
+  .w3c-panel_title {
+    display:inline-block;
+
+    .w3c-panel_status {
+      display:inline-block;
+      font-weight: bold;
+    }
+  }
+  .w3c-panel_errors {
+    display:inline-block;
+  }
+  .w3c-panel_warnings {
+    display:inline-block;
+  }
+  .w3c-panel_link {
+    color:@panel-font_color;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  .w3c-panel_close-btn {
+    position:absolute;
+    left: 6px;
+    top: -1px;
+    color:white;
+    cursor:pointer;
+  }
+}

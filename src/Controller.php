@@ -38,7 +38,19 @@ class Controller extends Service
         // Create W3C validator object
         $validator = new Validator($url);
 
-        return array('status' => 1, 'validation' => $validator->validate());
+        /** @var  $validationResults */
+        $validationResults = $validator->validate();
+
+        return array(
+            'status' => 1,
+            'html' => $this->view('panel')
+                ->set('status', $validationResults['validity'])
+                ->set('errors', $validationResults['errorsCount'])
+                ->set('warnings', $validationResults['warningsCount'])
+                ->set('invalid', $validationResults['validity'] == 1 ? 'invalid' : 'valid')
+                ->set('link', $validationResults['refferer'])
+                ->output()
+        );
     }
 
     /** Module initialization logic */

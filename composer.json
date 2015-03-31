@@ -13,6 +13,7 @@
         "samsonphp/event": "1.*",
         "samsonframework/w3c": "*",
         "samsonos/js_core": "*",
+        "samsonos/php_less": "*",
         "samsonos/php_resourcer": "*"
     },
     "require-dev": {

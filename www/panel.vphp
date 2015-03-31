@@ -1,0 +1,29 @@
+<div id="<?php iv('id')?>-panel" class="w3c-panel w3c-panel_<?php iv('invalid')?>">
+    <div class="w3c-panel_title">
+        <span class="w3c-panel_header">W3C Validator:</span>
+        <?php if(isval('status', '1')):?>
+            <div class="w3c-panel_status w3c-panel_invalid">NOT VALID</div>
+        <?php else:?>
+            <div class="w3c-panel_status w3c-panel_valid">VALID</div>
+        <?php endif?>
+    </div>
+    <?php if(isv('errors')):?>
+        <div class="w3c-panel_errors">
+            <span class="w3c-panel_title">Errors: </span>
+            <span class="w3c-panel_value"><?php iv('errors')?></span>
+        </div>
+    <?php endif?>
+
+    <?php if(isv('warnings')):?>
+        <div class="w3c-panel_warnings">
+            <span class="w3c-panel_title">Warnings: </span>
+            <span class="w3c-panel_value"><?php iv('warnings')?></span>
+        </div>
+    <?php endif?>
+
+    <a target="_blank" href="<?php iv('link')?>" class="w3c-panel_link" title="Go to validator.w3c.org">See violations...</a>
+
+    <div class="w3c-panel_close-btn" title="Close panel">
+        <span class="w3c-panel_text">x</span>
+    </div>
+</div>
