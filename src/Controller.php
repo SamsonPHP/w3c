@@ -39,7 +39,7 @@ class Controller extends Service
         $validator = new Validator($url);
 
         /** @var  $validationResults */
-        $validationResults = $validator->validate();
+        $validationResults = $validator->validate()->toArray();
 
         return array(
             'status' => 1,
@@ -47,7 +47,7 @@ class Controller extends Service
                 ->set('status', $validationResults['validity'])
                 ->set('errors', $validationResults['errorsCount'])
                 ->set('warnings', $validationResults['warningsCount'])
-                ->set('invalid', $validationResults['validity'] == 1 ? 'invalid' : 'valid')
+                ->set('invalid', $validationResults['validity'] == 0 ? 'invalid' : 'valid')
                 ->set('link', $validationResults['refferer'])
                 ->output()
         );
